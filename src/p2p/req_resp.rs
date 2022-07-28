@@ -4,13 +4,13 @@ use async_trait::async_trait;
 use libp2p::{
     core::ProtocolName,
     futures::{AsyncRead, AsyncWrite},
-    request_response::RequestResponseCodec,
+    request_response::{RequestResponseCodec, ProtocolSupport},
 };
 
 use crate::message;
 
 #[derive(Debug, Clone)]
-pub struct Protocol {}
+pub struct Protocol;
 
 impl ProtocolName for Protocol {
     fn protocol_name(&self) -> &[u8] {
@@ -19,7 +19,7 @@ impl ProtocolName for Protocol {
 }
 
 #[derive(Debug, Clone)]
-pub struct Codec {}
+pub struct Codec;
 
 #[async_trait]
 impl RequestResponseCodec for Codec {
