@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
-libp2p = "0.46"
+libp2p = { version = "0.46", features = ["dns-tokio", "tcp-tokio"] }
 primitive-types = "0.11.1"
+async-trait = "0.1.56"

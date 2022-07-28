@@ -1,4 +1,4 @@
-use primitive_types::{H256, H160};
+use primitive_types::{H160, H256};
 
 pub struct BlockHash(pub H256);
 
@@ -9,6 +9,3 @@ pub struct MerkleHash(pub H256);
 pub struct Timestamp(pub i64);
 
 pub struct NodeId(pub H160);
-
-
-

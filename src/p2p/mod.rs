@@ -1,12 +1,10 @@
-use libp2p::{Swarm, kad::{Kademlia, store::MemoryStore}, request_response::RequestResponse};
-use crate::Result;
-
 pub mod config;
 
-pub struct ValidatorNetworkBehaviour {
-    pub kad: Kademlia<MemoryStore>,
-    // pub re: RequestResponse<>,
-}
+mod req_resp;
+
+mod behaviour;
+
+use crate::Result;
 
 pub struct P2P {
     // pub swarm: Swarm<>,
@@ -14,9 +12,6 @@ pub struct P2P {
 
 impl P2P {
     pub fn new(config: config::Config) -> Result<Self> {
-
-
         Ok(Self {})
     }
 }
-

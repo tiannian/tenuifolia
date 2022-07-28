@@ -1,4 +1,4 @@
-use super::{BlockHash, BlockHeight, Timestamp, MerkleHash, NodeId};
+use super::{BlockHash, BlockHeight, MerkleHash, NodeId, Timestamp};
 
 pub struct BlockHeader {
     pub hash: BlockHash,
@@ -35,4 +35,3 @@ pub struct ValidatorInfo {
 pub struct ValidatorSet {
     pub set: Vec<ValidatorInfo>,
 }
-
