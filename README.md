@@ -64,9 +64,11 @@ pub fn add_entity(entity: impl Entity) {}
 
 Trait of Mempool
 
+```rust
 pub trait Entity {
     async fn check(&self, application: &Application) -> Result<CheckReceipt>;
 }
+```
 
 #### BlockPacker
 
