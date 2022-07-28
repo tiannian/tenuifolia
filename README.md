@@ -8,7 +8,8 @@
 
 Support node type:
 
-- Validator
+- Seednode
+- Voternode
 - Fullnode
 - Lightnode
 
@@ -34,9 +35,12 @@ tenuifolia = { version = "0.1", feature = ["browser"] }
 
 ### Node Type
 
-- Validator
-- Fullnode
-- Lightnode
+`tenuifolia` support the following node type:
+
+- Seednode: provides p2p services, including bootstrapping and NAT traversal.
+- Voternode: do consensus for blockchain.
+- Fullnode: execute all transaction.
+- Lightnode: only execute partial transaction.
 
 ### API Model
 
