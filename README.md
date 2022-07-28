@@ -46,9 +46,49 @@ tenuifolia = { version = "0.1", feature = ["browser"] }
 
 #### Mempool
 
+mempool can import both transactions and other blockchains.
+
+For example:
+
+- Transaction in Mempool: Use tenuifolia as a BFT framework like tendermint.
+- Probabilistic blockchain: As hybrid consensus like substrate's `babe` + `grandpa`.
+- Blockheader of other chain: To build a bridge.
+
+Mempool has two API:
+
+Function of Mempool
+
+```rust
+pub fn add_entity(entity: impl Entity) {}
+```
+
+Trait of Mempool
+
+pub trait Entity {
+    async fn check(&self, application: &Application) -> Result<CheckReceipt>;
+}
+
 #### BlockPacker
 
+BlockPacker use to select entity from Mempool.
+
+```rust
+pub trait BlockPacker {
+    async fn pack(&self, mempool: &mut Mempool, packer: &mut Packer);
+}
+```
+
 #### BlockExecutor
+
+BlockExecutor use to execute block after receive block.
+
+```rust
+pub trait BlockExecutor {
+    async fn apply_block(&mut self, block: Block) -> Result<()>;
+
+    async fn commit(&self) -> Result<CommitInfo>;
+}
+```
 
 #### ConsensusHook
 
