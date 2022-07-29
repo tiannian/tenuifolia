@@ -10,6 +10,7 @@ pub enum Error {
     UdsError(libp2p::TransportError<io::Error>),
     AtLeastOnePeerKeypair,
     MultiHashError(multihash::Error),
+    GossipError(&'static str),
 }
 
 impl From<io::Error> for Error {

@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use libp2p::{
     core::ProtocolName,
     futures::{AsyncRead, AsyncWrite},
-    request_response::{RequestResponseCodec, ProtocolSupport},
+    request_response::RequestResponseCodec,
 };
 
 use crate::message;

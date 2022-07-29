@@ -15,9 +15,14 @@ pub use peer_key::*;
 mod prelude;
 pub use prelude::*;
 
-pub struct ValidatorConfig;
+pub struct VoterConfig;
 
-impl NodeTypeConfig for ValidatorConfig {
-    type P2P = p2p::behaviour::ValiatorNetworkBehaviour;
+impl NodeTypeConfig for VoterConfig {
+    type P2P = p2p::behaviour::VoterNetworkBehaviour;
 }
 
+pub struct FullConfig;
+
+impl NodeTypeConfig for FullConfig {
+    type P2P = p2p::behaviour::FullNetworkBehaviour;
+}
