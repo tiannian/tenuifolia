@@ -11,6 +11,17 @@ pub enum Error {
     AtLeastOnePeerKeypair,
     MultiHashError(multihash::Error),
     GossipError(&'static str),
+
+    GrandpaNotDescendent,
+}
+
+impl From<Error> for finality_grandpa::Error {
+    fn from(e: Error) -> finality_grandpa::Error {
+        match e {
+            GrandpaNotDescendent => finality_grandpa::Error::NotDescendent,
+            _ => panic!("Error convert failed, unexpected error: {:?}", e),
+        }
+    }
 }
 
 impl From<io::Error> for Error {
