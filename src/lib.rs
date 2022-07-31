@@ -1,7 +1,7 @@
 pub mod p2p;
 
 mod error;
-pub use error::*;
+pub use error::{Result, TenuifoliaError as Error};
 
 /// Core type.
 pub mod core;

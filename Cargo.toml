@@ -10,8 +10,10 @@ async-trait = "0.1.56"
 
 serde = { version = "1.0", features = ["derive"] }
 primitive-types = "0.11.1"
+# pin-project-lite = "0.2.9"
 
 finality-grandpa = "0.16.0"
-libp2p = { version = "0.46", features = ["dns-tokio", "tcp-tokio"] }
+libp2p = { version = "0.46", features = ["dns-tokio", "tcp-tokio", "mplex", "noise", "uds", "websocket", "yamux", "kad", "request-response", "gossipsub", "secp256k1"], default-features = false }
 num-traits = "0.2.15"
 tokio = { version = "1.20.1", features = ["time"] }
+thiserror = "1.0.31"

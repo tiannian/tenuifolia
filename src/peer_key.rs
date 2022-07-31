@@ -61,3 +61,16 @@ pub struct PeerKeys {
     pub peer_id: Vec<u8>,
     pub keypairs: Vec<PeerKeypair>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PeerSignatureType {
+    Ed25519,
+    Secp256k1,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PeerSignature {
+    pub ty: PeerSignatureType,
+    pub peer_id: Vec<u8>,
+    pub signature: Vec<u8>,
+}

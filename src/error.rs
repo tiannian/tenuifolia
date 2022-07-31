@@ -1,57 +1,51 @@
-use std::io;
-
 use libp2p::{identity, multiaddr, multihash};
+use thiserror::Error;
 
-#[derive(Debug)]
-pub enum Error {
-    IoError(io::Error),
-    DecodeError(identity::error::DecodingError),
-    MultiAddrError(multiaddr::Error),
-    UdsError(libp2p::TransportError<io::Error>),
+#[derive(Debug, Error)]
+pub enum TenuifoliaError {
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
+
+    #[error(transparent)]
+    DecodeError(#[from] identity::error::DecodingError),
+
+    #[error(transparent)]
+    MultiAddrError(#[from] multiaddr::Error),
+
+    #[error(transparent)]
+    UdsError(#[from] libp2p::TransportError<std::io::Error>),
+
+    #[error("Must have least one peer key pair.")]
     AtLeastOnePeerKeypair,
-    MultiHashError(multihash::Error),
+
+    #[error(transparent)]
+    MultiHashError(#[from] multihash::Error),
+
+    #[error("gossip error: {0}")]
     GossipError(&'static str),
 
+    #[error("grandpa consensus is not descendent")]
     GrandpaNotDescendent,
+
+    #[error("It's unkonwn error")]
+    UnknownError,
 }
 
-impl From<Error> for finality_grandpa::Error {
-    fn from(e: Error) -> finality_grandpa::Error {
+impl From<TenuifoliaError> for finality_grandpa::Error {
+    fn from(e: TenuifoliaError) -> finality_grandpa::Error {
         match e {
-            GrandpaNotDescendent => finality_grandpa::Error::NotDescendent,
+            TenuifoliaError::GrandpaNotDescendent => finality_grandpa::Error::NotDescendent,
             _ => panic!("Error convert failed, unexpected error: {:?}", e),
         }
     }
 }
 
-impl From<io::Error> for Error {
-    fn from(e: io::Error) -> Self {
-        Error::IoError(e)
+impl From<finality_grandpa::Error> for TenuifoliaError {
+    fn from(e: finality_grandpa::Error) -> Self {
+        match e {
+            finality_grandpa::Error::NotDescendent => Self::GrandpaNotDescendent,
+        }
     }
 }
 
-impl From<identity::error::DecodingError> for Error {
-    fn from(e: identity::error::DecodingError) -> Self {
-        Error::DecodeError(e)
-    }
-}
-
-impl From<multiaddr::Error> for Error {
-    fn from(e: multiaddr::Error) -> Self {
-        Error::MultiAddrError(e)
-    }
-}
-
-impl From<libp2p::TransportError<io::Error>> for Error {
-    fn from(e: libp2p::TransportError<io::Error>) -> Self {
-        Error::UdsError(e)
-    }
-}
-
-impl From<multihash::Error> for Error {
-    fn from(e: multihash::Error) -> Self {
-        Error::MultiHashError(e)
-    }
-}
-
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, TenuifoliaError>;
