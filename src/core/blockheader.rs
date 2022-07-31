@@ -1,8 +1,8 @@
-use super::{BlockHash, BlockHeight, MerkleHash, NodeId, Timestamp};
+use super::{BlockHash, MerkleHash, NodeId, Timestamp};
 
 pub struct BlockHeader {
     pub hash: BlockHash,
-    pub height: BlockHeight,
+    pub height: u64,
     pub timestamp: Timestamp,
     pub parent_hash: BlockHash,
     pub app_hash: MerkleHash,

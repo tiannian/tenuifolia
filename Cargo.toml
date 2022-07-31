@@ -6,7 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
-libp2p = { version = "0.46", features = ["dns-tokio", "tcp-tokio"] }
-primitive-types = "0.11.1"
 async-trait = "0.1.56"
+
+serde = { version = "1.0", features = ["derive"] }
+primitive-types = "0.11.1"
+
+finality-grandpa = "0.16.0"
+libp2p = { version = "0.46", features = ["dns-tokio", "tcp-tokio"] }
+num-traits = "0.2.15"

@@ -15,6 +15,9 @@ pub use peer_key::*;
 mod prelude;
 pub use prelude::*;
 
+mod consensus;
+pub use consensus::*;
+
 pub struct VoterConfig;
 
 impl NodeTypeConfig for VoterConfig {
