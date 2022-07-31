@@ -17,3 +17,4 @@ libp2p = { version = "0.46", features = ["dns-tokio", "tcp-tokio", "mplex", "noi
 num-traits = "0.2.15"
 tokio = { version = "1.20.1", features = ["time"] }
 thiserror = "1.0.31"
+rand = "0.8.5"

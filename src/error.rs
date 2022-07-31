@@ -2,7 +2,7 @@ use libp2p::{identity, multiaddr, multihash};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum TenuifoliaError {
+pub enum Error {
     #[error(transparent)]
     IoError(#[from] std::io::Error),
 
@@ -31,16 +31,16 @@ pub enum TenuifoliaError {
     UnknownError,
 }
 
-impl From<TenuifoliaError> for finality_grandpa::Error {
-    fn from(e: TenuifoliaError) -> finality_grandpa::Error {
+impl From<Error> for finality_grandpa::Error {
+    fn from(e: Error) -> finality_grandpa::Error {
         match e {
-            TenuifoliaError::GrandpaNotDescendent => finality_grandpa::Error::NotDescendent,
+            Error::GrandpaNotDescendent => finality_grandpa::Error::NotDescendent,
             _ => panic!("Error convert failed, unexpected error: {:?}", e),
         }
     }
 }
 
-impl From<finality_grandpa::Error> for TenuifoliaError {
+impl From<finality_grandpa::Error> for Error {
     fn from(e: finality_grandpa::Error) -> Self {
         match e {
             finality_grandpa::Error::NotDescendent => Self::GrandpaNotDescendent,
@@ -48,4 +48,4 @@ impl From<finality_grandpa::Error> for TenuifoliaError {
     }
 }
 
-pub type Result<T> = std::result::Result<T, TenuifoliaError>;
+pub type Result<T> = std::result::Result<T, Error>;

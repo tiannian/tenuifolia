@@ -1,14 +1,12 @@
-use super::{BlockHash, MerkleHash, NodeId, Timestamp};
+use super::{EpochHash, MerkleHash, NodeId, Timestamp};
 
-pub struct BlockHeader {
-    pub hash: BlockHash,
+pub struct EpochHeader {
     pub height: u64,
     pub timestamp: Timestamp,
-    pub parent_hash: BlockHash,
+    pub parent_hash: EpochHash,
     pub app_hash: MerkleHash,
     pub proposer: NodeId,
     pub next_validator_set: ValidatorSet,
-    pub signatures: Signatures,
 }
 
 pub struct Signature {

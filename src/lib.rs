@@ -1,7 +1,7 @@
 pub mod p2p;
 
 mod error;
-pub use error::{Result, TenuifoliaError as Error};
+pub use error::*;
 
 /// Core type.
 pub mod core;
@@ -17,6 +17,12 @@ pub use prelude::*;
 
 mod consensus;
 pub use consensus::*;
+
+mod mempool;
+pub use mempool::*;
+
+mod store;
+pub use store::*;
 
 pub struct VoterConfig;
 

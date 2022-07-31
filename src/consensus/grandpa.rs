@@ -1,0 +1,119 @@
+use std::time::Duration;
+
+use finality_grandpa::{
+    round::State, voter::Environment, Chain, Commit, Equivocation, HistoricalVotes, Precommit,
+    Prevote, PrimaryPropose,
+};
+
+use crate::{core::EpochHash, Error, PeerSignature, Store, EpochPacker};
+
+use super::timer::Timer;
+
+pub struct GrandpaEnvironment<S, Packer> {
+    store: S,
+    packer: Packer,
+}
+
+impl<S: Store, Packer> Chain<EpochHash, u64> for GrandpaEnvironment<S, Packer> {
+    fn ancestry(
+        &self,
+        base: EpochHash,
+        end: EpochHash,
+    ) -> Result<Vec<EpochHash>, finality_grandpa::Error> {
+        let hashs = self.store.get_epoch_hash_sequence(base, end)?;
+        Ok(hashs)
+    }
+}
+
+impl<S: Store, Packer> Environment<EpochHash, u64> for GrandpaEnvironment<S, Packer> {
+    type Error = Error;
+
+    type Timer = Timer;
+
+    type Id = Vec<u8>;
+
+    type Signature = PeerSignature;
+
+    //     type BestChain =
+    //     Box<dyn Future<Output = Result<Option<(BlockHash, u64)>, Error>> + Unpin + Send>;
+    //
+    // type In = Box<
+    //     dyn Stream<Item = Result<SignedMessage<BlockHash, u64, Self::Signature, Self::Id>, Error>>
+    //         + Unpin
+    //         + Send,
+    //     >;
+
+    // type Out = Pin<Box<dyn Sink<Message<BlockHash, u64>, Error = Error> + Send>>;
+
+    //     fn best_chain_containing(&self, base: BlockHash) -> Self::BestChain {
+    //
+    //     }
+
+    fn round_commit_timer(&self) -> Self::Timer {
+        use rand::Rng;
+
+        const COMMIT_DELAY_MILLIS: u64 = 1000;
+
+        let thread_rng = rand::thread_rng();
+
+        let delay = Duration::from_millis(thread_rng.gen_range(0..COMMIT_DELAY_MILLIS));
+
+        Timer::sleep(delay)
+    }
+
+    fn proposed(&self, round: u64, propose: PrimaryPropose<EpochHash, u64>) -> Result<(), Error> {
+        Ok(())
+    }
+
+    fn prevoted(&self, round: u64, prevote: Prevote<EpochHash, u64>) -> Result<(), Error> {
+        Ok(())
+    }
+
+    fn precommitted(&self, round: u64, precommit: Precommit<EpochHash, u64>) -> Result<(), Error> {
+        Ok(())
+    }
+
+    fn completed(
+        &self,
+        round: u64,
+        state: State<EpochHash, u64>,
+        base: (EpochHash, u64),
+        votes: &HistoricalVotes<EpochHash, u64, Self::Signature, Self::Id>,
+    ) -> Result<(), Error> {
+        Ok(())
+    }
+
+    fn concluded(
+        &self,
+        round: u64,
+        state: State<EpochHash, u64>,
+        base: (EpochHash, u64),
+        votes: &HistoricalVotes<EpochHash, u64, Self::Signature, Self::Id>,
+    ) -> Result<(), Error> {
+        Ok(())
+    }
+
+    fn finalize_block(
+        &self,
+        hash: EpochHash,
+        number: u64,
+        round: u64,
+        commit: Commit<EpochHash, u64, Self::Signature, Self::Id>,
+    ) -> Result<(), Error> {
+        Ok(())
+    }
+
+    fn prevote_equivocation(
+        &self,
+        round: u64,
+        equivocation: Equivocation<Self::Id, Prevote<EpochHash, u64>, Self::Signature>,
+    ) {
+    }
+
+    fn precommit_equivocation(
+        &self,
+        round: u64,
+        equivocation: Equivocation<Self::Id, Precommit<EpochHash, u64>, Self::Signature>,
+    ) {
+    }
+}
