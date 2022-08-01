@@ -5,16 +5,19 @@ use finality_grandpa::{
     Prevote, PrimaryPropose,
 };
 
-use crate::{core::EpochHash, EpochPacker, Error, PeerSignature, Store};
+use crate::{core::EpochHash, EpochPacker, Error, Mempool, PeerSignature, Store};
 
 use super::{best_chain::BestChain, timer::Timer};
 
-pub struct GrandpaEnvironment<S, Packer> {
+pub struct GrandpaEnvironment<S, Packer, ChainApp, MempoolApp> {
     store: S,
     packer: Packer,
+    mempool: Mempool<ChainApp, MempoolApp>,
 }
 
-impl<S: Store, Packer> Chain<EpochHash, u64> for GrandpaEnvironment<S, Packer> {
+impl<S: Store, Packer, ChainApp, MempoolApp> Chain<EpochHash, u64>
+    for GrandpaEnvironment<S, Packer, ChainApp, MempoolApp>
+{
     fn ancestry(
         &self,
         base: EpochHash,
@@ -25,7 +28,9 @@ impl<S: Store, Packer> Chain<EpochHash, u64> for GrandpaEnvironment<S, Packer> {
     }
 }
 
-impl<S: Store, Packer> Environment<EpochHash, u64> for GrandpaEnvironment<S, Packer> {
+impl<S: Store, Packer: EpochPacker<ChainApp, MempoolApp>, ChainApp, MempoolApp>
+    Environment<EpochHash, u64> for GrandpaEnvironment<S, Packer, ChainApp, MempoolApp>
+{
     type Error = Error;
 
     type Timer = Timer;
@@ -45,7 +50,11 @@ impl<S: Store, Packer> Environment<EpochHash, u64> for GrandpaEnvironment<S, Pac
     // type Out = Pin<Box<dyn Sink<Message<BlockHash, u64>, Error = Error> + Send>>;
 
     fn best_chain_containing(&self, base: EpochHash) -> Self::BestChain {
-        let block = async move { Ok(Some((EpochHash::default(), 0))) };
+        let block = async move {
+            let epoch_header = self.packer.pack(&self.mempool).await?;
+
+            Ok(Some((EpochHash::default(), 0)))
+        };
 
         Self::BestChain::new(block)
     }
