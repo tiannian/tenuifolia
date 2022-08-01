@@ -5,9 +5,9 @@ use finality_grandpa::{
     Prevote, PrimaryPropose,
 };
 
-use crate::{core::EpochHash, Error, PeerSignature, Store, EpochPacker};
+use crate::{core::EpochHash, EpochPacker, Error, PeerSignature, Store};
 
-use super::timer::Timer;
+use super::{best_chain::BestChain, timer::Timer};
 
 pub struct GrandpaEnvironment<S, Packer> {
     store: S,
@@ -34,9 +34,8 @@ impl<S: Store, Packer> Environment<EpochHash, u64> for GrandpaEnvironment<S, Pac
 
     type Signature = PeerSignature;
 
-    //     type BestChain =
-    //     Box<dyn Future<Output = Result<Option<(BlockHash, u64)>, Error>> + Unpin + Send>;
-    //
+    type BestChain = BestChain;
+
     // type In = Box<
     //     dyn Stream<Item = Result<SignedMessage<BlockHash, u64, Self::Signature, Self::Id>, Error>>
     //         + Unpin
@@ -45,9 +44,11 @@ impl<S: Store, Packer> Environment<EpochHash, u64> for GrandpaEnvironment<S, Pac
 
     // type Out = Pin<Box<dyn Sink<Message<BlockHash, u64>, Error = Error> + Send>>;
 
-    //     fn best_chain_containing(&self, base: BlockHash) -> Self::BestChain {
-    //
-    //     }
+    fn best_chain_containing(&self, base: EpochHash) -> Self::BestChain {
+        let block = async move { Ok(Some((EpochHash::default(), 0))) };
+
+        Self::BestChain::new(block)
+    }
 
     fn round_commit_timer(&self) -> Self::Timer {
         use rand::Rng;
