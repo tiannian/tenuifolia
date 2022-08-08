@@ -15,11 +15,21 @@ pub trait NodeTypeConfig {
 }
 
 #[async_trait]
-pub trait Entity<ChainApp, MempoolApp> {
-    async fn check(&self, chain: &ChainApp, mempool: &mut MempoolApp) -> Result<CheckReceipt>;
+pub trait Entity {
+    type ChainApp;
+
+    type MempoolApp;
+
+    async fn check(
+        &self,
+        chain: &Self::ChainApp,
+        mempool: &mut Self::MempoolApp,
+    ) -> Result<CheckReceipt>;
 }
 
 #[async_trait]
-pub trait EpochPacker<ChainApp, MempoolApp> {
-    async fn pack(&self, mempool: &mut Mempool<ChainApp, MempoolApp>) -> Result<EpochHeader>;
+pub trait EpochPacker<ChainApp, MempoolApp>: Send + Sync {
+    type Digest: digest::Digest<OutputSize = digest::typenum::U32>;
+
+    async fn pack(&self, mempool: &Mempool<ChainApp, MempoolApp>) -> Result<EpochHeader>;
 }

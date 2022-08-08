@@ -2,9 +2,12 @@ pub mod config;
 
 mod req_resp;
 
+pub(crate) mod channel;
+
 pub(crate) mod behaviour;
 
-use libp2p::{PeerId, Swarm};
+use futures::StreamExt;
+use libp2p::{PeerId, Swarm, swarm::SwarmEvent};
 
 use crate::{Error, NodeTypeConfig, P2PConfig, PeerKeys, Result};
 
@@ -13,10 +16,10 @@ pub struct P2P<Config: NodeTypeConfig> {
 }
 
 impl<Config: NodeTypeConfig> P2P<Config> {
-    pub fn new(config: config::Config, keys: &PeerKeys) -> Result<Self> {
+    pub async fn new(config: config::Config, keys: &PeerKeys) -> Result<Self> {
         let keypair = keys.keypairs.get(0).ok_or(Error::AtLeastOnePeerKeypair)?;
 
-        let transport = config.build_transport(keypair)?;
+        let transport = config.build_transport(keypair).await?;
 
         let behaviour = <Config::P2P as P2PConfig>::new(&config, keys)?;
 
@@ -25,5 +28,16 @@ impl<Config: NodeTypeConfig> P2P<Config> {
         let swarm = Swarm::new(transport, behaviour, peer_id);
 
         Ok(Self { swarm })
+    }
+
+    pub async fn start(&mut self) {
+        loop {
+            let event = self.swarm.select_next_some().await;
+
+            match event {
+                SwarmEvent::Behaviour(a) => {}
+                _ => {}
+            }
+        }
     }
 }

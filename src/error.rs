@@ -27,6 +27,9 @@ pub enum Error {
     #[error("grandpa consensus is not descendent")]
     GrandpaNotDescendent,
 
+    #[error(transparent)]
+    SendError(futures::channel::mpsc::SendError),
+
     #[error("It's unkonwn error")]
     UnknownError,
 }

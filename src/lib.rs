@@ -15,8 +15,7 @@ pub use peer_key::*;
 mod prelude;
 pub use prelude::*;
 
-mod consensus;
-pub use consensus::*;
+pub mod consensus;
 
 mod mempool;
 pub use mempool::*;

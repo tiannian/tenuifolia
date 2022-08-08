@@ -12,7 +12,7 @@ impl<ChainApp, MempoolApp> Mempool<ChainApp, MempoolApp> {
         Self { chain, mempool }
     }
 
-    pub fn add_entity(&mut self, entity: impl Entity<ChainApp, MempoolApp>) -> Result<()> {
+    pub fn add_entity(&mut self, entity: impl Entity) -> Result<()> {
         Ok(())
     }
 }

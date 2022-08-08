@@ -1,3 +1,5 @@
+use digest::Digest;
+
 use super::{EpochHash, MerkleHash, NodeId, Timestamp};
 
 pub struct EpochHeader {
@@ -5,8 +7,23 @@ pub struct EpochHeader {
     pub timestamp: Timestamp,
     pub parent_hash: EpochHash,
     pub app_hash: MerkleHash,
+    pub entity_merkle: MerkleHash,
     pub proposer: NodeId,
-    pub next_validator_set: ValidatorSet,
+}
+
+impl EpochHeader {
+    pub fn hash<D: Digest>(&self) -> EpochHash {
+        let mut hasher = D::new();
+
+        hasher.update(self.height.to_be_bytes());
+        hasher.update(self.timestamp.as_bytes());
+        hasher.update(self.parent_hash.as_bytes());
+        hasher.update(self.app_hash.as_bytes());
+        hasher.update(self.entity_merkle.as_bytes());
+        hasher.update(self.proposer.as_bytes());
+
+        EpochHash::from_bytes(&hasher.finalize())
+    }
 }
 
 pub struct Signature {

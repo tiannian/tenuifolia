@@ -26,19 +26,19 @@ pub struct Re2Config {
 }
 
 impl Config {
-    fn build_websocket_transport(
+    async fn build_websocket_transport(
         keypair: &Keypair,
         addrs: &[String],
     ) -> Result<core::transport::Boxed<(PeerId, core::muxing::StreamMuxerBox)>> {
         let transport = {
-            let mut tcp_ = tcp::TokioTcpTransport::new(tcp::GenTcpConfig::new().nodelay(true));
+            let mut tcp_ = tcp::TcpTransport::new(tcp::GenTcpConfig::new().nodelay(true));
 
             for addr in addrs {
                 let addr = addr.parse()?;
                 tcp_.listen_on(addr)?;
             }
 
-            let ws_dns_tcp = websocket::WsConfig::new(dns::TokioDnsConfig::system(tcp_)?);
+            let ws_dns_tcp = websocket::WsConfig::new(dns::DnsConfig::system(tcp_).await?);
 
             ws_dns_tcp
         };
@@ -86,14 +86,14 @@ impl Config {
             .boxed())
     }
 
-    pub(crate) fn build_transport(
+    pub(crate) async fn build_transport(
         &self,
         keypair: &PeerKeypair,
     ) -> Result<core::transport::Boxed<(PeerId, core::muxing::StreamMuxerBox)>> {
         let kp = keypair.to_libp2p_keypair()?;
 
         match &self.transport {
-            TransportType::Websocket(addrs) => Self::build_websocket_transport(&kp, addrs),
+            TransportType::Websocket(addrs) => Self::build_websocket_transport(&kp, addrs).await,
             TransportType::Uds(addr) => Self::build_uds_transport(&kp, addr),
         }
     }

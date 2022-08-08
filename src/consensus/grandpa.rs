@@ -1,18 +1,25 @@
-use std::time::Duration;
+use std::{time::Duration, sync::Arc};
 
 use finality_grandpa::{
-    round::State, voter::Environment, Chain, Commit, Equivocation, HistoricalVotes, Precommit,
-    Prevote, PrimaryPropose,
+    round::State,
+    voter::{Environment, RoundData},
+    Chain, Commit, Equivocation, HistoricalVotes, Message, Precommit, Prevote, PrimaryPropose,
+    SignedMessage,
+};
+use futures::channel::mpsc::UnboundedReceiver;
+
+use crate::{
+    core::EpochHash, p2p::channel::Sender, EpochPacker, Error, Mempool, PeerSignature, Store,
 };
 
-use crate::{core::EpochHash, EpochPacker, Error, Mempool, PeerSignature, Store};
-
-use super::{best_chain::BestChain, timer::Timer};
+use super::{best_chain::BestChain, timer::Timer, Config, channel::ConsensusSide};
 
 pub struct GrandpaEnvironment<S, Packer, ChainApp, MempoolApp> {
     store: S,
     packer: Packer,
     mempool: Mempool<ChainApp, MempoolApp>,
+    config: Config,
+    side: ConsensusSide,
 }
 
 impl<S: Store, Packer, ChainApp, MempoolApp> Chain<EpochHash, u64>
@@ -28,8 +35,12 @@ impl<S: Store, Packer, ChainApp, MempoolApp> Chain<EpochHash, u64>
     }
 }
 
-impl<S: Store, Packer: EpochPacker<ChainApp, MempoolApp>, ChainApp, MempoolApp>
-    Environment<EpochHash, u64> for GrandpaEnvironment<S, Packer, ChainApp, MempoolApp>
+impl<
+        S: Store,
+        Packer: EpochPacker<ChainApp, MempoolApp>,
+        ChainApp: Send + Sync,
+        MempoolApp: Send + Sync,
+    > Environment<EpochHash, u64> for GrandpaEnvironment<S, Packer, ChainApp, MempoolApp>
 {
     type Error = Error;
 
@@ -41,32 +52,53 @@ impl<S: Store, Packer: EpochPacker<ChainApp, MempoolApp>, ChainApp, MempoolApp>
 
     type BestChain = BestChain;
 
-    // type In = Box<
-    //     dyn Stream<Item = Result<SignedMessage<BlockHash, u64, Self::Signature, Self::Id>, Error>>
-    //         + Unpin
-    //         + Send,
-    //     >;
+    type In =
+        Arc<UnboundedReceiver<Result<SignedMessage<EpochHash, u64, PeerSignature, Vec<u8>>, Error>>>;
 
-    // type Out = Pin<Box<dyn Sink<Message<BlockHash, u64>, Error = Error> + Send>>;
+    type Out = Sender<Message<EpochHash, u64>>;
 
     fn best_chain_containing(&self, base: EpochHash) -> Self::BestChain {
-        let block = async move {
-            let epoch_header = self.packer.pack(&self.mempool).await?;
+        let block = async {
+            let mempool = &self.mempool;
 
-            Ok(Some((EpochHash::default(), 0)))
+            let epoch_header = self.packer.pack(mempool).await?;
+
+            let hash = epoch_header.hash::<Packer::Digest>();
+
+            Ok(Some((hash, epoch_header.height)))
         };
 
         Self::BestChain::new(block)
     }
 
+    fn round_data(&self, round: u64) -> RoundData<Self::Id, Self::Timer, Self::In, Self::Out> {
+        use rand::Rng;
+
+        let thread_rng = rand::thread_rng();
+        let delay =
+            Duration::from_millis(thread_rng.gen_range(0..self.config.prevote_delay_millis));
+        let prevote_timer = Timer::sleep(delay);
+
+        let thread_rng = rand::thread_rng();
+        let delay =
+            Duration::from_millis(thread_rng.gen_range(0..self.config.prevote_delay_millis));
+        let precommit_timer = Timer::sleep(delay);
+
+        RoundData {
+            voter_id: self.config.peer_id.clone(),
+            prevote_timer,
+            precommit_timer,
+            incoming: self.side.grandpa_in.clone(),
+            outgoing: self.side.grandpa_out.clone(),
+        }
+    }
+
     fn round_commit_timer(&self) -> Self::Timer {
         use rand::Rng;
 
-        const COMMIT_DELAY_MILLIS: u64 = 1000;
-
         let thread_rng = rand::thread_rng();
 
-        let delay = Duration::from_millis(thread_rng.gen_range(0..COMMIT_DELAY_MILLIS));
+        let delay = Duration::from_millis(thread_rng.gen_range(0..self.config.commit_delay_millis));
 
         Timer::sleep(delay)
     }

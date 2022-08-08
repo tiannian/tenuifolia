@@ -5,12 +5,12 @@ use std::{
     time::Duration,
 };
 
-use tokio::time::{sleep, Sleep};
+use async_std::task::sleep;
 
 use crate::Error;
 
 pub struct Timer {
-    timer: Pin<Box<Sleep>>,
+    timer: Pin<Box<dyn Future<Output = ()>>>,
 }
 
 impl Timer {
