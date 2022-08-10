@@ -2,12 +2,9 @@ pub mod config;
 
 mod req_resp;
 
-pub(crate) mod channel;
-
 pub(crate) mod behaviour;
 
-use futures::StreamExt;
-use libp2p::{PeerId, Swarm, swarm::SwarmEvent};
+use libp2p::{futures::StreamExt, swarm::SwarmEvent, PeerId, Swarm};
 
 use crate::{Error, NodeTypeConfig, P2PConfig, PeerKeys, Result};
 

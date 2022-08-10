@@ -17,9 +17,6 @@ pub use prelude::*;
 
 pub mod consensus;
 
-mod mempool;
-pub use mempool::*;
-
 mod store;
 pub use store::*;
 

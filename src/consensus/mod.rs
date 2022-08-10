@@ -7,5 +7,4 @@ mod best_chain;
 mod config;
 pub use config::*;
 
-pub(crate) mod channel;
-
+pub mod channel;

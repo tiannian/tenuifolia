@@ -1,10 +1,7 @@
 use async_trait::async_trait;
 use libp2p::swarm::NetworkBehaviour;
 
-use crate::{
-    core::{CheckReceipt, EpochHeader},
-    p2p, Mempool, PeerKeys, Result,
-};
+use crate::{core::EpochHeader, message::Message, p2p, PeerKeys, Result};
 
 pub trait P2PConfig: NetworkBehaviour + Sized {
     fn new(config: &p2p::config::Config, keys: &PeerKeys) -> Result<Self>;
@@ -15,21 +12,15 @@ pub trait NodeTypeConfig {
 }
 
 #[async_trait]
-pub trait Entity {
-    type ChainApp;
+pub trait EpochPacker: Send + Sync + Clone + 'static {
+    type Digest: digest::Digest<OutputSize = digest::typenum::U32>;
 
-    type MempoolApp;
-
-    async fn check(
-        &self,
-        chain: &Self::ChainApp,
-        mempool: &mut Self::MempoolApp,
-    ) -> Result<CheckReceipt>;
+    async fn pack(&self) -> Result<EpochHeader>;
 }
 
 #[async_trait]
-pub trait EpochPacker<ChainApp, MempoolApp>: Send + Sync {
-    type Digest: digest::Digest<OutputSize = digest::typenum::U32>;
+pub trait NetworkChannel {
+    async fn recv_message(&self, message: Message) -> Result<()>;
 
-    async fn pack(&self, mempool: &Mempool<ChainApp, MempoolApp>) -> Result<EpochHeader>;
+    async fn send_message(&self) -> Result<Message>;
 }

@@ -1,30 +1,30 @@
-use std::{time::Duration, sync::Arc};
+use std::time::Duration;
 
+use async_std::channel::Receiver;
 use finality_grandpa::{
     round::State,
     voter::{Environment, RoundData},
     Chain, Commit, Equivocation, HistoricalVotes, Message, Precommit, Prevote, PrimaryPropose,
     SignedMessage,
 };
-use futures::channel::mpsc::UnboundedReceiver;
 
-use crate::{
-    core::EpochHash, p2p::channel::Sender, EpochPacker, Error, Mempool, PeerSignature, Store,
+use crate::{core::EpochHash, EpochPacker, Error, PeerSignature, Store, consensus::DelayType};
+
+use super::{
+    best_chain::BestChain,
+    channel::{ConsensusSide, SinkSender},
+    timer::Timer,
+    Config,
 };
 
-use super::{best_chain::BestChain, timer::Timer, Config, channel::ConsensusSide};
-
-pub struct GrandpaEnvironment<S, Packer, ChainApp, MempoolApp> {
+pub struct GrandpaEnvironment<S, Packer> {
     store: S,
     packer: Packer,
-    mempool: Mempool<ChainApp, MempoolApp>,
     config: Config,
     side: ConsensusSide,
 }
 
-impl<S: Store, Packer, ChainApp, MempoolApp> Chain<EpochHash, u64>
-    for GrandpaEnvironment<S, Packer, ChainApp, MempoolApp>
-{
+impl<S: Store, Packer> Chain<EpochHash, u64> for GrandpaEnvironment<S, Packer> {
     fn ancestry(
         &self,
         base: EpochHash,
@@ -35,13 +35,7 @@ impl<S: Store, Packer, ChainApp, MempoolApp> Chain<EpochHash, u64>
     }
 }
 
-impl<
-        S: Store,
-        Packer: EpochPacker<ChainApp, MempoolApp>,
-        ChainApp: Send + Sync,
-        MempoolApp: Send + Sync,
-    > Environment<EpochHash, u64> for GrandpaEnvironment<S, Packer, ChainApp, MempoolApp>
-{
+impl<S: Store, Packer: EpochPacker> Environment<EpochHash, u64> for GrandpaEnvironment<S, Packer> {
     type Error = Error;
 
     type Timer = Timer;
@@ -52,16 +46,17 @@ impl<
 
     type BestChain = BestChain;
 
-    type In =
-        Arc<UnboundedReceiver<Result<SignedMessage<EpochHash, u64, PeerSignature, Vec<u8>>, Error>>>;
+    type In = Receiver<Result<SignedMessage<EpochHash, u64, PeerSignature, Vec<u8>>, Error>>;
 
-    type Out = Sender<Message<EpochHash, u64>>;
+    type Out = SinkSender<Message<EpochHash, u64>>;
 
-    fn best_chain_containing(&self, base: EpochHash) -> Self::BestChain {
-        let block = async {
-            let mempool = &self.mempool;
+    fn best_chain_containing(&self, _base: EpochHash) -> Self::BestChain {
+        let packer = self.packer.clone();
 
-            let epoch_header = self.packer.pack(mempool).await?;
+        // Checking base
+
+        let block = async move {
+            let epoch_header = packer.pack().await?;
 
             let hash = epoch_header.hash::<Packer::Digest>();
 
@@ -74,29 +69,46 @@ impl<
     fn round_data(&self, round: u64) -> RoundData<Self::Id, Self::Timer, Self::In, Self::Out> {
         use rand::Rng;
 
-        let thread_rng = rand::thread_rng();
-        let delay =
-            Duration::from_millis(thread_rng.gen_range(0..self.config.prevote_delay_millis));
-        let prevote_timer = Timer::sleep(delay);
+        fn build_timer(round: u64, delay: u64, ty: DelayType) -> Timer {
+            let (begin, end) = match ty {
+                DelayType::Static => {
+                    (0, delay)
+                }
+                DelayType::Rate(r) => {
+                    if round == 0 {
+                        (0, delay)
+                    } else {
+                        let begin = delay * round;
 
-        let thread_rng = rand::thread_rng();
-        let delay =
-            Duration::from_millis(thread_rng.gen_range(0..self.config.prevote_delay_millis));
-        let precommit_timer = Timer::sleep(delay);
+                        let offset = delay * r[0] / r[1];
+
+                        (begin, begin + offset)
+                    }
+                }
+            };
+
+            let mut thread_rng = rand::thread_rng();
+            let delay =
+                Duration::from_millis(thread_rng.gen_range(begin .. end));
+            Timer::sleep(delay)
+        }
+
+        let prevote_timer = build_timer(round, self.config.prevote_delay_millis, self.config.delay_type.clone());
+        let precommit_timer = build_timer(round, self.config.precommit_delay_millis, self.config.delay_type.clone());
 
         RoundData {
             voter_id: self.config.peer_id.clone(),
             prevote_timer,
             precommit_timer,
             incoming: self.side.grandpa_in.clone(),
-            outgoing: self.side.grandpa_out.clone(),
+            outgoing: self.side.grandpa_out.clone().into(),
         }
     }
 
     fn round_commit_timer(&self) -> Self::Timer {
         use rand::Rng;
 
-        let thread_rng = rand::thread_rng();
+        let mut thread_rng = rand::thread_rng();
 
         let delay = Duration::from_millis(thread_rng.gen_range(0..self.config.commit_delay_millis));
 

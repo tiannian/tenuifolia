@@ -24,7 +24,7 @@ impl Timer {
 impl Future for Timer {
     type Output = Result<(), Error>;
 
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let re = self.timer.as_mut().poll(cx);
 
         match re {

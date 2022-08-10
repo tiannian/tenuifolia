@@ -38,9 +38,7 @@ impl Config {
                 tcp_.listen_on(addr)?;
             }
 
-            let ws_dns_tcp = websocket::WsConfig::new(dns::DnsConfig::system(tcp_).await?);
-
-            ws_dns_tcp
+            websocket::WsConfig::new(dns::DnsConfig::system(tcp_).await?)
         };
 
         let noise_keys = noise::Keypair::<noise::X25519Spec>::new()

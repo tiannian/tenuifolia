@@ -37,8 +37,8 @@ macro_rules! define_for_core_type {
                 Self(inner)
             }
 
-            pub fn as_bytes(&self) -> &[u8] {
-                &self.0.to_be_bytes()
+            pub fn as_bytes(&self) -> [u8; $len] {
+                self.0.to_be_bytes()
             }
         }
     };
