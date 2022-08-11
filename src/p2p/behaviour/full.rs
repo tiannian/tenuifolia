@@ -50,8 +50,7 @@ impl P2PConfig for FullNetworkBehaviour {
 
         let go_config = GossipsubConfig::default();
 
-        let gossip =
-            Gossipsub::new(message_authenticity, go_config).map_err(Error::GossipError)?;
+        let gossip = Gossipsub::new(message_authenticity, go_config).map_err(Error::GossipError)?;
 
         Ok(Self { kad, re, gossip })
     }

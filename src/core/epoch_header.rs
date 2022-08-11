@@ -1,6 +1,9 @@
 use digest::Digest;
+use quick_merkle::Merkle;
 
-use super::{EpochHash, MerkleHash, NodeId, Timestamp};
+use crate::{Entity, EpochPacker};
+
+use super::{EntityBody, EpochHash, MerkleHash, NodeId, Timestamp, VoterSet};
 
 pub struct EpochHeader {
     pub height: u64,
@@ -9,6 +12,7 @@ pub struct EpochHeader {
     pub app_hash: MerkleHash,
     pub entity_merkle: MerkleHash,
     pub proposer: NodeId,
+    pub voter_merkle: MerkleHash,
 }
 
 impl EpochHeader {
@@ -26,27 +30,41 @@ impl EpochHeader {
     }
 }
 
-pub struct Signature {
-    pub node_id_index: u32,
-    pub public_key_index: u32,
-    pub signature: Vec<u8>,
+pub struct PackerEpoch<P: EpochPacker> {
+    pub height: u64,
+    pub timestamp: Timestamp,
+    pub parent_hash: EpochHash,
+    pub app_hash: MerkleHash,
+    pub entities: Vec<P::Entity>,
+    pub voter_set: VoterSet,
 }
 
-pub struct Signatures {
-    pub signatures: Vec<Signature>,
-}
+impl<P: EpochPacker> PackerEpoch<P> {
+    pub fn build(self, node_id: NodeId) -> (EpochHeader, Vec<EntityBody>, VoterSet) {
+        let ebs: Vec<EntityBody> = self.entities.iter().map(|e| e.to_body()).collect();
 
-pub enum PublicKey {
-    Ed25519(Vec<u8>),
-    Secp256k1(Vec<u8>),
-}
+        let ehs = ebs.iter().map(|e| e.hash::<P::Digest>()).collect();
 
-pub struct ValidatorInfo {
-    pub node_id: NodeId,
-    pub weight: u64,
-    pub public_keys: Vec<PublicKey>,
-}
+        let merkle = Merkle::<P::Digest>::new(ehs);
 
-pub struct ValidatorSet {
-    pub set: Vec<ValidatorInfo>,
+        let emr = if let Some(m) = merkle {
+            *m.root()
+        } else {
+            Default::default()
+        };
+
+        let vs = self.voter_set;
+
+        let header = EpochHeader {
+            height: self.height,
+            timestamp: self.timestamp,
+            parent_hash: self.parent_hash,
+            app_hash: self.app_hash,
+            proposer: node_id,
+            voter_merkle: vs.hash::<P::Digest>(),
+            entity_merkle: MerkleHash::from_bytes(&emr),
+        };
+
+        (header, ebs, vs)
+    }
 }

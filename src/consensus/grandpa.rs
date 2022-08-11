@@ -8,7 +8,7 @@ use finality_grandpa::{
     SignedMessage,
 };
 
-use crate::{core::EpochHash, EpochPacker, Error, PeerSignature, Store, consensus::DelayType};
+use crate::{consensus::DelayType, core::EpochHash, EpochPacker, Error, PeerSignature, Store};
 
 use super::{
     best_chain::BestChain,
@@ -56,7 +56,7 @@ impl<S: Store, Packer: EpochPacker> Environment<EpochHash, u64> for GrandpaEnvir
         // Checking base
 
         let block = async move {
-            let epoch_header = packer.pack().await?;
+            let (epoch_header, _es, _vs) = packer.pack().await?;
 
             let hash = epoch_header.hash::<Packer::Digest>();
 
@@ -71,9 +71,7 @@ impl<S: Store, Packer: EpochPacker> Environment<EpochHash, u64> for GrandpaEnvir
 
         fn build_timer(round: u64, delay: u64, ty: DelayType) -> Timer {
             let (begin, end) = match ty {
-                DelayType::Static => {
-                    (0, delay)
-                }
+                DelayType::Static => (0, delay),
                 DelayType::Rate(r) => {
                     if round == 0 {
                         (0, delay)
@@ -88,13 +86,20 @@ impl<S: Store, Packer: EpochPacker> Environment<EpochHash, u64> for GrandpaEnvir
             };
 
             let mut thread_rng = rand::thread_rng();
-            let delay =
-                Duration::from_millis(thread_rng.gen_range(begin .. end));
+            let delay = Duration::from_millis(thread_rng.gen_range(begin..end));
             Timer::sleep(delay)
         }
 
-        let prevote_timer = build_timer(round, self.config.prevote_delay_millis, self.config.delay_type.clone());
-        let precommit_timer = build_timer(round, self.config.precommit_delay_millis, self.config.delay_type.clone());
+        let prevote_timer = build_timer(
+            round,
+            self.config.prevote_delay_millis,
+            self.config.delay_type.clone(),
+        );
+        let precommit_timer = build_timer(
+            round,
+            self.config.precommit_delay_millis,
+            self.config.delay_type.clone(),
+        );
 
         RoundData {
             voter_id: self.config.peer_id.clone(),
@@ -115,59 +120,63 @@ impl<S: Store, Packer: EpochPacker> Environment<EpochHash, u64> for GrandpaEnvir
         Timer::sleep(delay)
     }
 
-    fn proposed(&self, round: u64, propose: PrimaryPropose<EpochHash, u64>) -> Result<(), Error> {
+    fn proposed(&self, _round: u64, _propose: PrimaryPropose<EpochHash, u64>) -> Result<(), Error> {
         Ok(())
     }
 
-    fn prevoted(&self, round: u64, prevote: Prevote<EpochHash, u64>) -> Result<(), Error> {
+    fn prevoted(&self, _round: u64, _prevote: Prevote<EpochHash, u64>) -> Result<(), Error> {
         Ok(())
     }
 
-    fn precommitted(&self, round: u64, precommit: Precommit<EpochHash, u64>) -> Result<(), Error> {
+    fn precommitted(
+        &self,
+        _round: u64,
+        _precommit: Precommit<EpochHash, u64>,
+    ) -> Result<(), Error> {
         Ok(())
     }
 
     fn completed(
         &self,
-        round: u64,
-        state: State<EpochHash, u64>,
-        base: (EpochHash, u64),
-        votes: &HistoricalVotes<EpochHash, u64, Self::Signature, Self::Id>,
+        _round: u64,
+        _state: State<EpochHash, u64>,
+        _base: (EpochHash, u64),
+        _votes: &HistoricalVotes<EpochHash, u64, Self::Signature, Self::Id>,
     ) -> Result<(), Error> {
         Ok(())
     }
 
     fn concluded(
         &self,
-        round: u64,
-        state: State<EpochHash, u64>,
-        base: (EpochHash, u64),
-        votes: &HistoricalVotes<EpochHash, u64, Self::Signature, Self::Id>,
+        _round: u64,
+        _state: State<EpochHash, u64>,
+        _base: (EpochHash, u64),
+        _votes: &HistoricalVotes<EpochHash, u64, Self::Signature, Self::Id>,
     ) -> Result<(), Error> {
         Ok(())
     }
 
     fn finalize_block(
         &self,
-        hash: EpochHash,
-        number: u64,
-        round: u64,
-        commit: Commit<EpochHash, u64, Self::Signature, Self::Id>,
+        _hash: EpochHash,
+        _number: u64,
+        _round: u64,
+        _commit: Commit<EpochHash, u64, Self::Signature, Self::Id>,
     ) -> Result<(), Error> {
         Ok(())
     }
 
     fn prevote_equivocation(
         &self,
-        round: u64,
-        equivocation: Equivocation<Self::Id, Prevote<EpochHash, u64>, Self::Signature>,
+        _round: u64,
+        _equivocation: Equivocation<Self::Id, Prevote<EpochHash, u64>, Self::Signature>,
     ) {
     }
 
     fn precommit_equivocation(
         &self,
-        round: u64,
-        equivocation: Equivocation<Self::Id, Precommit<EpochHash, u64>, Self::Signature>,
+        _round: u64,
+        _equivocation: Equivocation<Self::Id, Precommit<EpochHash, u64>, Self::Signature>,
     ) {
     }
 }

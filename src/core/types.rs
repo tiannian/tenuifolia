@@ -1,3 +1,4 @@
+use digest::{Digest, Output};
 use primitive_types::{H160, H256};
 
 macro_rules! define_for_primitive_type {
@@ -11,6 +12,12 @@ macro_rules! define_for_primitive_type {
 
             pub fn as_bytes(&self) -> &[u8] {
                 self.0.as_bytes()
+            }
+        }
+
+        impl AsRef<[u8]> for $main {
+            fn as_ref(&self) -> &[u8] {
+                self.as_bytes()
             }
         }
     };
@@ -27,6 +34,27 @@ define_for_primitive_type!(MerkleHash, H256);
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct NodeId(pub H160);
 define_for_primitive_type!(NodeId, H160);
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
+pub struct EntityHash(pub H256);
+define_for_primitive_type!(EntityHash, H256);
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
+pub struct EntityBody(Vec<u8>);
+
+impl EntityBody {
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
+    }
+
+    pub fn hash<D: Digest>(&self) -> Output<D> {
+        let mut haser = D::new();
+
+        haser.update(self.as_bytes());
+
+        haser.finalize()
+    }
+}
 
 macro_rules! define_for_core_type {
     ($main:ty, $inner:ty, $len:expr) => {
